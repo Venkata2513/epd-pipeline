@@ -268,65 +268,6 @@ resource "aws_iam_role_policy" "stepfn_invoke_processor_lambda" {
     }]
   })
 }
-resource "aws_iam_role" "metadata_writer_lambda_role" {
-  name = "epd-metadata-writer-lambda-role-dev"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = {
-        Service = "lambda.amazonaws.com"
-      }
-    }]
-  })
-}
-resource "aws_iam_role_policy_attachment" "metadata_writer_lambda_basic" {
-  role       = aws_iam_role.metadata_writer_lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-resource "aws_iam_role_policy" "metadata_writer_s3_policy" {
-  name = "metadata-writer-s3-policy"
-  role = aws_iam_role.metadata_writer_lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = [
-        "s3:PutObject"
-      ]
-      Effect   = "Allow"
-      Resource = "${aws_s3_bucket.raw.arn}/*"
-    }]
-  })
-}
-resource "aws_lambda_function" "metadata_writer_lambda" {
-  function_name = "epd-metadata-writer-lambda-dev"
-
-  filename         = "C:/Users/nagar/Projects/epd-pipeline/lambda/metadata_writer/metadata_writer_lambda.zip"
-  source_code_hash = filebase64sha256("C:/Users/nagar/Projects/epd-pipeline/lambda/metadata_writer/metadata_writer_lambda.zip")
-
-  handler = "handler.lambda_handler"
-  runtime = "python3.11"
-
-  role = aws_iam_role.metadata_writer_lambda_role.arn
-}
-resource "aws_iam_role_policy" "stepfn_invoke_metadata_writer_lambda" {
-  name = "stepfn-invoke-metadata-writer-lambda"
-  role = aws_iam_role.step_function_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = [
-        "lambda:InvokeFunction"
-      ]
-      Effect   = "Allow"
-      Resource = aws_lambda_function.metadata_writer_lambda.arn
-    }]
-  })
-}
 resource "aws_iam_role_policy" "processor_lambda_s3_write_policy" {
   name = "processor-lambda-s3-write-policy"
   role = aws_iam_role.processor_lambda_role.id
