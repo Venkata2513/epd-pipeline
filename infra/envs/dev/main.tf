@@ -1,4 +1,4 @@
- terraform {
+terraform {
   required_version = ">= 1.5.0"
 
   required_providers {
@@ -58,7 +58,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 resource "aws_lambda_function" "epd_lambda" {
   function_name = "epd-lambda-dev"
 
-  filename = "../../../lambda/lambda.zip"
+  filename         = "../../../lambda/lambda.zip"
   source_code_hash = filebase64sha256("C:/Users/nagar/Projects/epd-pipeline/lambda/lambda.zip")
 
   handler = "handler.lambda_handler"
@@ -75,19 +75,19 @@ resource "aws_cloudwatch_event_rule" "s3_object_created" {
   description = "Capture object created events for the EPD raw bucket"
 
   event_pattern = jsonencode({
-  source        = ["aws.s3"]
-  "detail-type" = ["Object Created"]
-  detail = {
-    bucket = {
-      name = [aws_s3_bucket.raw.bucket]
+    source        = ["aws.s3"]
+    "detail-type" = ["Object Created"]
+    detail = {
+      bucket = {
+        name = [aws_s3_bucket.raw.bucket]
+      }
+      object = {
+        key = [{
+          prefix = "raw/epd_"
+        }]
+      }
     }
-    object = {
-      key = [{
-        prefix = "raw/epd_"
-      }]
-    }
-  }
-})
+  })
 }
 resource "aws_cloudwatch_event_target" "lambda_target" {
   rule      = aws_cloudwatch_event_rule.s3_object_created.name
@@ -120,94 +120,94 @@ resource "aws_sfn_state_machine" "epd_pipeline" {
   role_arn = aws_iam_role.step_function_role.arn
 
   definition = jsonencode({
-  Comment = "EPD pipeline with validation, processing, metadata writing and result branching"
-  StartAt = "ValidateFile"
-  States = {
-    ValidateFile = {
-      Type = "Choice"
-      Choices = [
-        {
-          Variable      = "$.key"
-          StringMatches = "*.csv"
-          Next          = "ProcessFile"
+    Comment = "EPD pipeline with validation, processing, metadata writing and result branching"
+    StartAt = "ValidateFile"
+    States = {
+      ValidateFile = {
+        Type = "Choice"
+        Choices = [
+          {
+            Variable      = "$.key"
+            StringMatches = "*.csv"
+            Next          = "ProcessFile"
+          }
+        ]
+        Default = "InvalidFile"
+      }
+
+      ProcessFile = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::lambda:invoke"
+        Parameters = {
+          FunctionName = aws_lambda_function.processor_lambda.arn
+          Payload = {
+            "bucket.$" = "$.bucket"
+            "key.$"    = "$.key"
+          }
         }
-      ]
-      Default = "InvalidFile"
-    }
+        OutputPath = "$.Payload"
 
-    ProcessFile = {
-  Type     = "Task"
-  Resource = "arn:aws:states:::lambda:invoke"
-  Parameters = {
-    FunctionName = aws_lambda_function.processor_lambda.arn
-    Payload = {
-      "bucket.$" = "$.bucket"
-      "key.$"    = "$.key"
-    }
-  }
-  OutputPath = "$.Payload"
+        Retry = [
+          {
+            ErrorEquals = [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ]
+            IntervalSeconds = 2
+            MaxAttempts     = 3
+            BackoffRate     = 2
+          }
+        ]
 
-  Retry = [
-    {
-      ErrorEquals = [
-        "Lambda.ServiceException",
-        "Lambda.AWSLambdaException",
-        "Lambda.SdkClientException",
-        "Lambda.TooManyRequestsException"
-      ]
-      IntervalSeconds = 2
-      MaxAttempts     = 3
-      BackoffRate     = 2
-    }
-  ]
+        Catch = [
+          {
+            ErrorEquals = ["States.ALL"]
+            ResultPath  = "$.error_info"
+            Next        = "FailState"
+          }
+        ]
 
-  Catch = [
-    {
-      ErrorEquals = ["States.ALL"]
-      ResultPath  = "$.error_info"
-      Next        = "FailState"
-    }
-  ]
+        Next = "CheckProcessorResult"
+      }
 
-  Next = "CheckProcessorResult"
-}
+      CheckProcessorResult = {
+        Type = "Choice"
+        Choices = [
+          {
+            Variable     = "$.status"
+            StringEquals = "processing_complete"
+            Next         = "SuccessState"
+          },
+          {
+            Variable     = "$.status"
+            StringEquals = "error"
+            Next         = "FailState"
+          }
+        ]
+        Default = "FailState"
+      }
 
-    CheckProcessorResult = {
-  Type = "Choice"
-  Choices = [
-    {
-      Variable     = "$.status"
-      StringEquals = "processing_complete"
-      Next         = "SuccessState"
-    },
-    {
-      Variable     = "$.status"
-      StringEquals = "error"
-      Next         = "FailState"
-    }
-  ]
-  Default = "FailState"
-}
+      SuccessState = {
+        Type   = "Pass"
+        Result = "File processed and metadata written"
+        End    = true
+      }
 
-    SuccessState = {
-      Type   = "Pass"
-      Result = "File processed and metadata written"
-      End    = true
-    }
+      FailState = {
+        Type  = "Fail"
+        Error = "ProcessingFailed"
+        Cause = "Processor Lambda returned an error status"
+      }
 
-    FailState = {
-      Type  = "Fail"
-      Error = "ProcessingFailed"
-      Cause = "Processor Lambda returned an error status"
+      InvalidFile = {
+        Type   = "Pass"
+        Result = "Invalid file format"
+        End    = true
+      }
     }
-
-    InvalidFile = {
-      Type   = "Pass"
-      Result = "Invalid file format"
-      End    = true
-    }
-  }
-})
+  })
 }
 resource "aws_iam_role_policy" "lambda_stepfn_policy" {
   name = "lambda-stepfn-policy"
@@ -245,7 +245,7 @@ resource "aws_iam_role_policy_attachment" "processor_lambda_basic" {
 resource "aws_lambda_function" "processor_lambda" {
   function_name = "epd-processor-lambda-dev"
 
-  filename = "../../../lambda/lambda.zip"
+  filename         = "../../../lambda/lambda.zip"
   source_code_hash = filebase64sha256("C:/Users/nagar/Projects/epd-pipeline/lambda/processor/processor_lambda.zip")
 
   handler = "handler.lambda_handler"
@@ -296,7 +296,7 @@ resource "aws_iam_role_policy" "metadata_writer_s3_policy" {
       Action = [
         "s3:PutObject"
       ]
-      Effect = "Allow"
+      Effect   = "Allow"
       Resource = "${aws_s3_bucket.raw.arn}/*"
     }]
   })
