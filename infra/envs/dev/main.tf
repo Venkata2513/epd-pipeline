@@ -59,10 +59,9 @@ resource "aws_lambda_function" "epd_lambda" {
   function_name = "epd-lambda-dev"
 
   filename         = "../../../lambda/lambda.zip"
-  source_code_hash = filebase64sha256("C:/Users/nagar/Projects/epd-pipeline/lambda/lambda.zip")
-
-  handler = "handler.lambda_handler"
-  runtime = "python3.11"
+  source_code_hash = filebase64sha256("../../../lambda/lambda.zip")
+  handler          = "handler.lambda_handler"
+  runtime          = "python3.11"
 
   role = aws_iam_role.lambda_role.arn
 }
@@ -246,7 +245,7 @@ resource "aws_lambda_function" "processor_lambda" {
   function_name = "epd-processor-lambda-dev"
 
   filename         = "../../../lambda/lambda.zip"
-  source_code_hash = filebase64sha256("C:/Users/nagar/Projects/epd-pipeline/lambda/processor/processor_lambda.zip")
+  source_code_hash = filebase64sha256("../../../lambda/processor/processor_lambda.zip")
 
   handler = "handler.lambda_handler"
   runtime = "python3.11"
