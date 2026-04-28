@@ -58,7 +58,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic" {
 resource "aws_lambda_function" "epd_lambda" {
   function_name = "epd-lambda-dev"
 
-  filename         = "C:/Users/nagar/Projects/epd-pipeline/lambda/lambda.zip"
+  filename = "../../../lambda/lambda.zip"
   source_code_hash = filebase64sha256("C:/Users/nagar/Projects/epd-pipeline/lambda/lambda.zip")
 
   handler = "handler.lambda_handler"
@@ -245,7 +245,7 @@ resource "aws_iam_role_policy_attachment" "processor_lambda_basic" {
 resource "aws_lambda_function" "processor_lambda" {
   function_name = "epd-processor-lambda-dev"
 
-  filename         = "C:/Users/nagar/Projects/epd-pipeline/lambda/processor/processor_lambda.zip"
+  filename = "../../../lambda/lambda.zip"
   source_code_hash = filebase64sha256("C:/Users/nagar/Projects/epd-pipeline/lambda/processor/processor_lambda.zip")
 
   handler = "handler.lambda_handler"

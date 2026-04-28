@@ -16,3 +16,7 @@ __pycache__/
 # OS / misc
 .DS_Store
 Thumbs.db
+# Test data
+*.csv
+*.txt
+*.json

@@ -20,6 +20,13 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Build Lambda packages
+        run: |
+          cd ../../../lambda
+          zip lambda.zip handler.py
+          cd processor
+          zip processor_lambda.zip handler.py
+
       - name: Terraform Format Check
         run: terraform fmt -check
 
